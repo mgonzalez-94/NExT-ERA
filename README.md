@@ -1,5 +1,7 @@
 # NExT-ERA
 
 ## Descargas adicionales:
-GraphicalProperties
-SigPro
+
+- GraphicalProperties
+
+- SigPro
