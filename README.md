@@ -2,6 +2,6 @@
 
 ## Descargas adicionales:
 
-- [GraphicalProperties]()
+- [GraphicalProperties](https://github.com/mgonzalez-94/GraphicalProperties)
 
 - [SigPro](https://github.com/mgonzalez-94/SigPro)
