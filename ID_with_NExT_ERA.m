@@ -61,8 +61,8 @@ PLOT_MAC = varargin{14};
 FreqAprox = varargin{15};
 %%% Prepare input signals -------------------------------------------------
 if IsTimeVectorIncluded == 0
-    t = (0:size(data,2)-1)./fs; % (s)
-    data = [t,data];
+    t = (0:size(data,1)-1)./fs; % (s)
+    data = [t(:),data];
 end
 %%%
 if isempty(fr)
