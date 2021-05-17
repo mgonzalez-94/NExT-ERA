@@ -22,8 +22,8 @@ tic_plotCluster = tic;
 GraphProp = GraphicalProperties;
 %%% -----------------------------------------------------------------------
 Fig = figure;
-Axes_0 = axes(Fig);
 if ~isempty(fYa)
+    Axes_0 = axes(Fig);
     N = size(fYa,2)-1;
     Clrs = colormap(gray(N+4));
     Clrs([1,2,end-1,end],:) = [];
@@ -51,6 +51,13 @@ Axes_1.XLabel.String = XLabel;
 Axes_1.YLabel.String = YLabel;
 %%% -----------------------------------------------------------------------
 if ~isempty(fYa)
+    %%%
+    set(Fig,'CurrentAxes',Axes_1)
+    ZoomHandle = zoom;
+    ZoomHandle.ActionPostCallback = {@SetXLimAxesEqual,Axes_0,Axes_1};
+    set(Axes_0,'Interruptible','on')
+    set(Axes_1,'Interruptible','on')
+    %%%
     Axes_0.Position = Axes_1.Position;
     Axes_1.Color = 'none';
     %%%
@@ -81,4 +88,9 @@ disp(['plotCluster: ',num2str(toc(tic_plotCluster),'%.3f')])
 end
 function resize(~, ~, Axes_0, Axes_1)
 Axes_0.Position = Axes_1.Position;
+end
+function SetXLimAxesEqual(varargin)
+Axes_0 = varargin{3};
+Axes_1 = varargin{4};
+Axes_0.XLim = Axes_1.XLim;
 end
