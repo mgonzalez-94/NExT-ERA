@@ -1,4 +1,4 @@
-function [P50,ID] = ID_with_NExT_ERA(varargin)
+function [P50,ID,GlobalChannels] = ID_with_NExT_ERA(varargin)
 % (data,IsTimeVectorIncluded,RefChannel,ModelOrderRange,NumClusters,MAC_Treshold)
 %
 % [P50,ID] = ID_with_NExT_ERA(varin)
@@ -29,11 +29,18 @@ function [P50,ID] = ID_with_NExT_ERA(varargin)
 %       intentará identificar.
 %   MAC_Treshold: valor mínimo aceptable del MAC.
 %   PLOT_MAC: valor lógico (1:true, 0:false) para graficar modos de vibración.
+%   PLOT_FFT: valor lógico (1:true, 0:false) para graficar FFT.
 %   FreqAprox: en caso que no se conozcan indicar [], en caso que se deseen
 %       incluir indicar rango de cada frecuencia como vectores fila. Es
 %       decir, FreqAprox(2,1)=frecuencia mínima asociada al segundo modo de
 %       vibración y FreqAprox(2,2)= frecuencia máxima asociada al segundo
 %       modo de vibración.
+%   GlobalChannels: vector indicando las columnas de aceleración en data a
+%       qué orden global corresponden. La finalidad de este vector es poder
+%       comparar los resultados obtenidos a partir de diferentes registros.
+%       Por ejemplo, en caso que se tengan los sensores _023 (cada sensor
+%       con las direcciones), entonces GlobalChannels = [1:3,7:12];
+%       En caso que no se cuente con esta información, indicar [].
 %
 % OUTPUTS:
 %   SignOut: estructura con las propiedades de la señal procesada.
@@ -58,7 +65,9 @@ ModelOrderRange = varargin{11};
 NumClusters = varargin{12};
 MAC_Treshold = varargin{13};
 PLOT_MAC = varargin{14};
-FreqAprox = varargin{15};
+PLOT_FFT = varargin{15};
+FreqAprox = varargin{16};
+GlobalChannels = varargin{17};
 %%% Prepare input signals -------------------------------------------------
 if IsTimeVectorIncluded == 0
     t = (0:size(data,1)-1)./fs; % (s)
@@ -72,10 +81,10 @@ elseif fr == 0
 end
 %%%
 if ~isempty(fff)
-   if fff >= 0.4*fr
-       warning('Cutoff low-pass filter will be redefined as fff = 0.4*fr.')
-       fff = 0.4*fr; % (Hz)
-   end
+    if fff >= 0.4*fr
+        warning('Cutoff low-pass filter will be redefined as fff = 0.4*fr.')
+        fff = 0.4*fr; % (Hz)
+    end
 end
 %%%
 if ~isempty(pAcel)
@@ -96,9 +105,29 @@ SignOut = SigPro(...
     ffi,... % ffi
     fff,... % fff
     pAcel,... % plotts
-    0,... % plotfft
+    PLOT_FFT,... % plotfft
     0,... % plotpsd
     0); % plotspt
+%%% Check zero signals ----------------------------------------------------
+if ~isempty(GlobalChannels)
+    ZeroSignals = sum(data(:,2:end),1)==0;
+    if any(ZeroSignals)
+        DissmisThisChannel = find(ZeroSignals);
+        warning(['Los siguientes canales serán excluidos del análisis por no tener información: ',num2str(DissmisThisChannel)])
+        SignOut.y(:,DissmisThisChannel) = [];
+        GlobalChannels(DissmisThisChannel) = [];
+        [ZeroRef,DissmisThisRef] = ismember(DissmisThisChannel,RefChannel);
+        %%% RefChannel ----------------------------------------------------
+        if any(ZeroRef)
+            for ii = 1:length(ZeroRef)
+                if ZeroRef(ii)
+                    RefChannel(DissmisThisRef(ii)) = [];
+                end
+            end
+        end
+        %%% ---------------------------------------------------------------
+    end
+end
 %%% -----------------------------------------------------------------------
 %%% ID with NExT_ERA
 PropNERA.L     = size(SignOut.y,1);
@@ -126,11 +155,11 @@ Fn = Wn./(2*pi);
 ModelOrder = ModelOrder(Ind);
 %%% -----------------------------------------------------------------------
 %%% Clustering
-ClusterIndex = getCluster(Wn,Ph,NumClusters,MAC_Treshold,PLOT_MAC);
+ClusterIndex = getCluster(Fn,Ph,NumClusters,MAC_Treshold,PLOT_MAC,FreqAprox);
 plotCluster(ModelOrder,Fn,ClusterIndex,'Freq. (Hz)','Model Order',[SignOut.f,abs(SignOut.Y)])
 %%% -----------------------------------------------------------------------
 %%% Organize data
-jj = 0; 
+jj = 0;
 for ii = 1:size(ClusterIndex,2)
     if sum(ClusterIndex(:,ii))>0
         jj = jj+1;
