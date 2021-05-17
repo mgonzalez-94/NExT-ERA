@@ -1,5 +1,4 @@
 function [P50,ID,GlobalChannels] = ID_with_NExT_ERA(varargin)
-% (data,IsTimeVectorIncluded,RefChannel,ModelOrderRange,NumClusters,MAC_Treshold)
 %
 % [P50,ID] = ID_with_NExT_ERA(varin)
 %
