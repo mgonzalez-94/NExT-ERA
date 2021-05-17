@@ -1,9 +1,9 @@
-function ClusterIndex = getCluster(Wn,Ph,MaxClustNum,MAC_Treshold,PLOT)
+function ClusterIndex = getCluster(varargin)
 % getCluster
 %
 % INPUTS:
 %
-% Wn: vector with frequencies.
+% Fn: vector with frequencies in Hz.
 % Ph: matrix with modal shapes, each row is a coordinate and each column a
 %       mode shape.
 % MaxClustNum: scalar with max number of clusters groups, usually 4.
@@ -21,20 +21,38 @@ function ClusterIndex = getCluster(Wn,Ph,MaxClustNum,MAC_Treshold,PLOT)
 % %%%%%%%%%%%%%%%%%%%
 tic_getCluster = tic;
 %%% -----------------------------------------------------------------------
+Fn = varargin{1};
+Ph = varargin{2};
+MaxClustNum = varargin{3};
+MAC_Treshold = varargin{4};
+PLOT = varargin{5};
+if nargin>5
+    FreqAprox = varargin{6};
+else
+    FreqAprox = [];
+end
+%%% -----------------------------------------------------------------------
 MAC = getMAC(Ph,Ph);  if PLOT==1; plotMAC(MAC,'Antes de Clúster'); end
-MAC_linkage = linkage(MAC,'single','euclidean');
-ClusterIndex = cluster(MAC_linkage,'MaxClust',MaxClustNum);
-ClusterIndex = ClusterIndex==(1:max(ClusterIndex));
+%%% -----------------------------------------------------------------------
+if isempty(FreqAprox)
+    MAC_linkage = linkage(MAC,'single','euclidean');
+    ClusterIndex = cluster(MAC_linkage,'MaxClust',MaxClustNum);
+    ClusterIndex = ClusterIndex==(1:max(ClusterIndex));
+else
+    ClusterIndex = Fn>=(FreqAprox(:,1)') & Fn<=(FreqAprox(:,2)');
+end
 %%% -----------------------------------------------------------------------
 for ii = 1:size(ClusterIndex,2)
-    % Exclude Wn < P25 | Wn > P75
-    Location = ClusterIndex(:,ii);
-    if sum(Location)>4
-        ExcludeThis = false(length(Location),1);
-        P25 = prctile(Wn(Location),25);
-        P75 = prctile(Wn(Location),75);
-        ExcludeThis(Location,1) = Wn(Location)<P25 | Wn(Location)>P75;
-        ClusterIndex(logical(ExcludeThis),ii) = false;
+    % Exclude Fn < P25 | Fn > P75
+    if isempty(FreqAprox)
+        Location = ClusterIndex(:,ii);
+        if sum(Location)>4
+            ExcludeThis = false(length(Location),1);
+            P25 = prctile(Fn(Location),25);
+            P75 = prctile(Fn(Location),75);
+            ExcludeThis(Location,1) = Fn(Location)<P25 | Fn(Location)>P75;
+            ClusterIndex(logical(ExcludeThis),ii) = false;
+        end
     end
     % Exclude p50_MAC < MAC_Treshold
     if ~isempty(MAC_Treshold)
